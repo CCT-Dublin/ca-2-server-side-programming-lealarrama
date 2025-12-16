@@ -4,31 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Form</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>Insert data</h2>
+  <div class="container">
+    <h2>Insert data</h2>
 
-  <form id="myForm">
-    <label>First name</label><br />
-    <input name="first_name" id="first_name" maxlength="20" required /><br /><br />
+    <form id="myForm">
+      <label>First name</label>
+      <input name="first_name" id="first_name" maxlength="20" required />
 
-    <label>Second name</label><br />
-    <input name="second_name" id="second_name" maxlength="20" required /><br /><br />
+      <label>Second name</label>
+      <input name="second_name" id="second_name" maxlength="20" required />
 
-    <label>Email</label><br />
-    <input name="email" id="email" required /><br /><br />
+      <label>Email</label>
+      <input name="email" id="email" required />
 
-    <label>Phone (10 digits)</label><br />
-    <input name="phone" id="phone" required /><br /><br />
+      <label>Phone (10 digits)</label>
+      <input name="phone_number" id="phone_number" required />
 
-    <label>Eircode (6 chars)</label><br />
-    <input name="eircode" id="eircode" maxlength="6" required /><br /><br />
+      <label>Eircode (6 chars)</label>
+      <input name="eircode" id="eircode" maxlength="6" required />
 
-    <button type="submit">Submit</button>
-  </form>
+      <button type="submit">Submit</button>
+    </form>
 
-  <p id="msg"></p>
+    <p id="msg"></p>
+  </div>
 
-  <script src="./public/form.js"></script>
+  <script src="/form.js"></script>
 </body>
 </html>
