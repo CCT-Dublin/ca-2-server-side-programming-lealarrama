@@ -1,65 +1,117 @@
-const form = document.getElementById("myForm");
-const msg = document.getElementById("msg");
+import fs from "fs";
+import csv from "csv-parser";
+import { pool, ensureSchema } from "./database.js";
 
+/* ===== Validation rules (ENUNCIADO) ===== */
 const nameRe = /^[A-Za-zÀ-ÿ0-9]{1,20}$/;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRe = /^\d{10}$/;
 const eircodeRe = /^[0-9][A-Za-z0-9]{5}$/;
 
-function validate(data) {
+/* ===== Validate one row ===== */
+function validateRow(mapped) {
   const errors = [];
 
-  const first = String(data.first_name ?? "").trim();
-  const second = String(data.second_name ?? "").trim();
-  const email = String(data.email ?? "").trim();
-  const phone = String(data.phone_number?? "").trim();
-  const eircode = String(data.eircode ?? "").trim();
+  const first_name = String(mapped.first_name || "").trim();
+  const second_name = String(mapped.second_name || "").trim();
+  const email = String(mapped.email || "").trim();
+  const phone_number = String(mapped.phone_number || "").replace(/\D/g, "").trim();
+  const eircode = String(mapped.eircode || "").trim();
 
-  if (!nameRe.test(first)) errors.push("first_name invalid (letters/numbers, max 20)");
-  if (!nameRe.test(second)) errors.push("second_name invalid (letters/numbers, max 20)");
-  if (!emailRe.test(email)) errors.push("email invalid");
-  if (!phoneRe.test(phone)) errors.push("phone invalid (exactly 10 digits)");
-  if (!eircodeRe.test(eircode)) errors.push("eircode invalid (6 chars, starts with number)");
+  if (!nameRe.test(first_name)) errors.push("first_name");
+  if (!nameRe.test(second_name)) errors.push("second_name");
+  if (!emailRe.test(email)) errors.push("email");
+  if (!phoneRe.test(phone_number)) errors.push("phone_number");
+  if (!eircodeRe.test(eircode)) errors.push("eircode");
 
-  return errors;
+  return {
+    ok: errors.length === 0,
+    errors,
+    clean: { first_name, second_name, email, phone_number, eircode },
+  };
 }
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+/* ===== Insert ===== */
+async function insertRow(clean) {
+  await pool.execute(
+    `INSERT INTO mysql_table
+     (first_name, second_name, email, phone_number, eircode)
+     VALUES (?, ?, ?, ?, ?)`,
+    [
+      clean.first_name,
+      clean.second_name,
+      clean.email,
+      clean.phone_number,
+      clean.eircode,
+    ]
+  );
+}
 
-  const data = {
-    first_name: document.getElementById("first_name").value,
-    second_name: document.getElementById("second_name").value,
-    email: document.getElementById("email").value,
-    phone_number: document.getElementById("phone_number").value,
-    eircode: document.getElementById("eircode").value,
-  };
+/* ===== Main ===== */
+async function runImport() {
+  await ensureSchema();
 
-  data.phone_number = data.phone_number.replace(/\D/g, "");
-
-
-  const errors = validate(data);
-  if (errors.length) {
-    msg.textContent = "Errors: " + errors.join(" | ");
-    return;
+  const filePath = "./data/Personal_Information.csv";
+  if (!fs.existsSync(filePath)) {
+    console.error("CSV file not found:", filePath);
+    process.exit(1);
   }
 
-  try {
-    const res = await fetch("/api/submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+  let rowNumber = 1;
+  let total = 0;
+  let inserted = 0;
+  let invalid = 0;
 
-    const out = await res.json();
-    if (!res.ok) {
-      msg.textContent = "Server error: " + (out.error || "Unknown error");
-      return;
+  // 🔥 CLAVE: limpiar BOM + normalizar headers
+  const stream = fs.createReadStream(filePath).pipe(
+    csv({
+      mapHeaders: ({ header }) =>
+        header
+          .replace(/^\uFEFF/, "")   // <-- elimina BOM
+          .trim()
+          .toLowerCase(),
+    })
+  );
+
+  for await (const row of stream) {
+    rowNumber++;
+    total++;
+
+    // mapping CSV -> DB
+    const mapped = {
+      first_name: row.first_name,
+      second_name: row.last_name,
+      email: row.email,
+      phone_number: row.phone,
+      eircode: row.eir_code,
+    };
+
+    const result = validateRow(mapped);
+
+    if (!result.ok) {
+      invalid++;
+      console.error(`Row ${rowNumber} invalid -> ${result.errors.join(", ")}`);
+      continue;
     }
 
-    msg.textContent = "Saved OK! Inserted id: " + out.insertId;
-    form.reset();
-  } catch (err) {
-    msg.textContent = "Network error: " + err.message;
+    try {
+      await insertRow(result.clean);
+      inserted++;
+    } catch (err) {
+      invalid++;
+      console.error(`Row ${rowNumber} database error`);
+    }
   }
+
+  console.log("---- IMPORT SUMMARY ----");
+  console.log("Total rows read:", total);
+  console.log("Inserted:", inserted);
+  console.log("Invalid/failed:", invalid);
+
+  await pool.end();
+}
+
+runImport().catch((err) => {
+  console.error("Import failed:", err.message);
+  process.exit(1);
 });
