@@ -1,0 +1,28 @@
+{
+  "name": "ca-2-server-side-programming-lealarrama",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/gCxlkD7T)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CCT-Dublin/ca-2-server-side-programming-lealarrama.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CCT-Dublin/ca-2-server-side-programming-lealarrama/issues"
+  },
+  "homepage": "https://github.com/CCT-Dublin/ca-2-server-side-programming-lealarrama#readme",
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mysql2": "^3.15.3"
+  }
+}
