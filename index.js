@@ -3,7 +3,6 @@ import { Readable } from "stream";
 import csv from "csv-parser";
 import { pool, ensureSchema } from "./database.js";
 
-/* Reglas del enunciado */
 const nameRe = /^[A-Za-zÀ-ÿ0-9]{1,20}$/;
 const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const phoneRe = /^\d{10}$/;
@@ -16,19 +15,15 @@ function validateRow(row) {
   const second_name = String(row.last_name || "").trim();
   const email = String(row.email || "").trim();
   const phone_number = String(row.phone || "").replace(/\D/g, "").trim();
-  const eircode = String(row.eir_code || "").trim();
+  const eircode = String(row.eir_code || "").replace(/\s+/g, "").trim();
 
   if (!nameRe.test(first_name)) errors.push("first_name");
   if (!nameRe.test(second_name)) errors.push("second_name");
   if (!emailRe.test(email)) errors.push("email");
-  if (!phoneRe.test(phone_number)) errors.push("phone");
+  if (!phoneRe.test(phone_number)) errors.push("phone_number");
   if (!eircodeRe.test(eircode)) errors.push("eircode");
 
-  return {
-    ok: errors.length === 0,
-    errors,
-    clean: { first_name, second_name, email, phone_number, eircode },
-  };
+  return { ok: errors.length === 0, errors, clean: { first_name, second_name, email, phone_number, eircode } };
 }
 
 async function insertRow(clean) {
@@ -48,9 +43,8 @@ async function runImport() {
     process.exit(1);
   }
 
-  // ✅ Leer como texto y eliminar BOM al inicio si existe
   let text = fs.readFileSync(filePath, "utf8");
-  text = text.replace(/^\uFEFF/, "");
+  text = text.replace(/^\uFEFF/, ""); // remove BOM
 
   let rowNumber = 1;
   let total = 0;
